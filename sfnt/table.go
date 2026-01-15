@@ -50,7 +50,7 @@ func (font *Font) parseTable(s *tableSection) (Table, error) {
 		}
 		defer r.Close()
 
-		buf = make([]byte, s.zLength, s.zLength)
+		buf = make([]byte, s.zLength)
 		if _, err := io.ReadFull(r, buf); err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func (font *Font) parseTable(s *tableSection) (Table, error) {
 		if font.collection != nil {
 			file = font.collection
 		}
-		buf = make([]byte, s.length, s.length)
+		buf = make([]byte, s.length)
 		if _, err := file.ReadAt(buf, int64(s.offset)); err != nil {
 			return nil, err
 		}

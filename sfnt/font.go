@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type fixed struct {
@@ -99,17 +100,18 @@ func (font *Font) Type() Tag {
 
 // String provides a debugging representation of a font.
 func (font *Font) String() string {
-	str := "Parsed font with scalerType=" + font.scalerType.hex()
+	var str strings.Builder
+	str.WriteString("Parsed font with scalerType=" + font.scalerType.hex())
 
 	if font.scalerType != TypeTrueType {
-		str += " (" + font.scalerType.String() + ")"
+		str.WriteString(" (" + font.scalerType.String() + ")")
 	}
 
 	for _, t := range font.Tags() {
-		str += "\n" + t.String()
+		str.WriteString("\n" + t.String())
 	}
 
-	return str
+	return str.String()
 }
 
 // HeadTable returns the table corresponding to the 'head' tag.

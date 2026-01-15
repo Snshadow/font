@@ -2,7 +2,7 @@ package sfnt
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,7 +34,7 @@ func TestSmokeTest(t *testing.T) {
 			continue
 		}
 
-		if _, err := font.WriteOTF(ioutil.Discard); err != nil {
+		if _, err := font.WriteOTF(io.Discard); err != nil {
 			t.Errorf("WriteOTF(%q) err = %q, want nil", filename, err)
 			continue
 		}
@@ -55,7 +55,7 @@ func TestSmokeTest(t *testing.T) {
 // BenchmarkParseWOFF2-8         	   20000	   2011769 ns/op	  742531 B/op	     468 allocs/op
 // BenchmarkStrictParseWOFF2-8   	   20000	   2033596 ns/op	  875608 B/op	     818 allocs/op
 func benchmarkParse(b *testing.B, filename string) {
-	buf, err := ioutil.ReadFile(filepath.Join("testdata", filename))
+	buf, err := os.ReadFile(filepath.Join("testdata", filename))
 	if err != nil {
 		b.Errorf("Failed to open %q: %s\n", filename, err)
 	}
@@ -71,7 +71,7 @@ func benchmarkParse(b *testing.B, filename string) {
 
 // benchmarkStrictParse tests the performance of a simple StrictParse.
 func benchmarkStrictParse(b *testing.B, filename string) {
-	buf, err := ioutil.ReadFile(filepath.Join("testdata", filename))
+	buf, err := os.ReadFile(filepath.Join("testdata", filename))
 	if err != nil {
 		b.Errorf("Failed to open %q: %s\n", filename, err)
 	}

@@ -60,15 +60,11 @@ func parseTableOS2(tag Tag, buf []byte) (Table, error) {
 	var v4fields v4Fields
 	var v5fields v5Fields
 	if err := binary.Read(r, binary.BigEndian, &v4fields); err != nil {
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	if v4fields.Version == 5 {
 		if err := binary.Read(r, binary.BigEndian, &v5fields); err != nil {
-			if err != nil {
-				return nil, err
-			}
+			return nil, err
 		}
 	}
 

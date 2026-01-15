@@ -187,7 +187,7 @@ func (t *TableLayout) parseLangSys(b []byte, record langSysRecord) (*LangSys, er
 		return nil, fmt.Errorf("reading langSysTable: %s", err)
 	}
 
-	featureIndices := make([]uint16, lang.FeatureIndexCount, lang.FeatureIndexCount)
+	featureIndices := make([]uint16, lang.FeatureIndexCount)
 	if err := binary.Read(r, binary.BigEndian, &featureIndices); err != nil {
 		return nil, fmt.Errorf("reading langSysTable featureIndices[%d]: %s", lang.FeatureIndexCount, err)
 	}
@@ -362,7 +362,7 @@ func (t *TableLayout) parseLookup(b []byte, offset uint16) (*Lookup, error) {
 		return nil, fmt.Errorf("reading lookupRecord: %s", err)
 	}
 	//fmt.Printf("lookup table (%d) has %d subtables\n", lookup.Type, lookup.SubRecordCount)
-	subs := make([]uint16, lookup.SubRecordCount, lookup.SubRecordCount)
+	subs := make([]uint16, lookup.SubRecordCount)
 	if err := binary.Read(r, binary.BigEndian, &subs); err != nil {
 		return nil, fmt.Errorf("reading lookupRecord: %s", err)
 	}
@@ -399,7 +399,7 @@ func (t *TableLayout) parseLookupList() error {
 		// first we read in an array of lookup record offsets, as described here:
 		// https://docs.microsoft.com/en-us/typography/opentype/spec/chapter2#lookup-list-table
 		//
-		lookupOffsets := make([]uint16, count, count)
+		lookupOffsets := make([]uint16, count)
 		if err := binary.Read(r, binary.BigEndian, &lookupOffsets); err != nil {
 			return fmt.Errorf("reading lookup offsets: %s", err)
 		}
