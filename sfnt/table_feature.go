@@ -184,12 +184,12 @@ func (t *TableLayout) parseLangSys(b []byte, record langSysRecord) (*LangSys, er
 
 	var lang langSysTable
 	if err := binary.Read(r, binary.BigEndian, &lang); err != nil {
-		return nil, fmt.Errorf("reading langSysTable: %s", err)
+		return nil, fmt.Errorf("reading langSysTable: %w", err)
 	}
 
 	featureIndices := make([]uint16, lang.FeatureIndexCount)
 	if err := binary.Read(r, binary.BigEndian, &featureIndices); err != nil {
-		return nil, fmt.Errorf("reading langSysTable featureIndices[%d]: %s", lang.FeatureIndexCount, err)
+		return nil, fmt.Errorf("reading langSysTable featureIndices[%d]: %w", lang.FeatureIndexCount, err)
 	}
 
 	var features []*Feature
@@ -218,7 +218,7 @@ func (t *TableLayout) parseScript(b []byte, record scriptRecord) (*Script, error
 
 	var script scriptTable
 	if err := binary.Read(r, binary.BigEndian, &script); err != nil {
-		return nil, fmt.Errorf("reading scriptTable: %s", err)
+		return nil, fmt.Errorf("reading scriptTable: %w", err)
 	}
 
 	var defaultLang *LangSys
@@ -235,7 +235,7 @@ func (t *TableLayout) parseScript(b []byte, record scriptRecord) (*Script, error
 	for i := 0; i < int(script.LangSysCount); i++ {
 		var record langSysRecord
 		if err := binary.Read(r, binary.BigEndian, &record); err != nil {
-			return nil, fmt.Errorf("reading langSysRecord[%d]: %s", i, err)
+			return nil, fmt.Errorf("reading langSysRecord[%d]: %w", i, err)
 		}
 
 		if record.Offset == script.DefaultLangSys {
@@ -271,14 +271,14 @@ func (t *TableLayout) parseScriptList() error {
 
 	var count uint16
 	if err := binary.Read(r, binary.BigEndian, &count); err != nil {
-		return fmt.Errorf("reading scriptCount: %s", err)
+		return fmt.Errorf("reading scriptCount: %w", err)
 	}
 
 	t.Scripts = nil
 	for i := 0; i < int(count); i++ {
 		var record scriptRecord
 		if err := binary.Read(r, binary.BigEndian, &record); err != nil {
-			return fmt.Errorf("reading scriptRecord[%d]: %s", i, err)
+			return fmt.Errorf("reading scriptRecord[%d]: %w", i, err)
 		}
 
 		script, err := t.parseScript(b, record)
@@ -303,7 +303,7 @@ func (t *TableLayout) parseFeature(b []byte, record featureRecord) (*Feature, er
 
 	var feature featureTable
 	if err := binary.Read(r, binary.BigEndian, &feature); err != nil {
-		return nil, fmt.Errorf("reading featureTable: %s", err)
+		return nil, fmt.Errorf("reading featureTable: %w", err)
 	}
 
 	// TODO Read feature.FeatureParams and feature.LookupIndexCount
@@ -326,14 +326,14 @@ func (t *TableLayout) parseFeatureList() error {
 
 	var count uint16
 	if err := binary.Read(r, binary.BigEndian, &count); err != nil {
-		return fmt.Errorf("reading featureCount: %s", err)
+		return fmt.Errorf("reading featureCount: %w", err)
 	}
 
 	t.Features = nil
 	for i := 0; i < int(count); i++ {
 		var record featureRecord
 		if err := binary.Read(r, binary.BigEndian, &record); err != nil {
-			return fmt.Errorf("reading featureRecord[%d]: %s", i, err)
+			return fmt.Errorf("reading featureRecord[%d]: %w", i, err)
 		}
 
 		feature, err := t.parseFeature(b, record)
@@ -359,12 +359,12 @@ func (t *TableLayout) parseLookup(b []byte, offset uint16) (*Lookup, error) {
 	r := bytes.NewReader(b[offset:])
 	var lookup lookupTable
 	if err := binary.Read(r, binary.BigEndian, &lookup.lookupTableInfo); err != nil {
-		return nil, fmt.Errorf("reading lookupRecord: %s", err)
+		return nil, fmt.Errorf("reading lookupRecord: %w", err)
 	}
 	//fmt.Printf("lookup table (%d) has %d subtables\n", lookup.Type, lookup.SubRecordCount)
 	subs := make([]uint16, lookup.SubRecordCount)
 	if err := binary.Read(r, binary.BigEndian, &subs); err != nil {
-		return nil, fmt.Errorf("reading lookupRecord: %s", err)
+		return nil, fmt.Errorf("reading lookupRecord: %w", err)
 	}
 	lookup.subrecordOffsets = subs
 	// reading of lookup record is complete at this spot
@@ -392,7 +392,7 @@ func (t *TableLayout) parseLookupList() error {
 
 	var count uint16
 	if err := binary.Read(r, binary.BigEndian, &count); err != nil {
-		return fmt.Errorf("reading lookupCount: %s", err)
+		return fmt.Errorf("reading lookupCount: %w", err)
 	}
 
 	if count > 0 {
@@ -401,7 +401,7 @@ func (t *TableLayout) parseLookupList() error {
 		//
 		lookupOffsets := make([]uint16, count)
 		if err := binary.Read(r, binary.BigEndian, &lookupOffsets); err != nil {
-			return fmt.Errorf("reading lookup offsets: %s", err)
+			return fmt.Errorf("reading lookup offsets: %w", err)
 		}
 		t.Lookups = nil
 		for i := 0; i < int(count); i++ {
@@ -425,7 +425,7 @@ func parseTableLayout(tag Tag, buf []byte) (Table, error) {
 
 	r := bytes.NewReader(t.bytes)
 	if err := binary.Read(r, binary.BigEndian, &t.version); err != nil {
-		return nil, fmt.Errorf("reading layout version header: %s", err)
+		return nil, fmt.Errorf("reading layout version header: %w", err)
 	}
 
 	if t.version.Major != 1 || (t.version.Minor != 0 && t.version.Minor != 1) {
@@ -435,11 +435,11 @@ func parseTableLayout(tag Tag, buf []byte) (Table, error) {
 	switch t.version.Minor {
 	case 0:
 		if err := binary.Read(r, binary.BigEndian, &t.header.layoutHeader10); err != nil {
-			return nil, fmt.Errorf("reading layout header: %s", err)
+			return nil, fmt.Errorf("reading layout header: %w", err)
 		}
 	case 1:
 		if err := binary.Read(r, binary.BigEndian, &t.header); err != nil {
-			return nil, fmt.Errorf("reading layout header: %s", err)
+			return nil, fmt.Errorf("reading layout header: %w", err)
 		}
 	default:
 		// Should never get here, because we are gated by a earlier check.

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -10,7 +11,7 @@ import (
 
 func usage() {
 	fmt.Println(`
-Usage: font [features|info|metrics|scrub|stats] font.[otf,ttf,woff,woff2] ...
+Usage: font [-i font-index] <features|info|metrics|scrub|stats> font.[otf,ttf,ttc,woff,woff2] ...
 
 features: prints the gpos/gsub tables (contains font features)
 info: prints the name table (contains metadata)
@@ -20,10 +21,17 @@ stats: prints each table and the amount of space used`)
 }
 
 func main() {
+	fontIndex := flag.Int("i", -1, "select `font-index` for TrueType Collection (.ttc/.otc), starting from 0.")
+
+	flag.Usage = func() {
+		usage()
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
 	command := "help"
-	if len(os.Args) > 1 {
-		command = os.Args[1]
-		os.Args = os.Args[1:]
+	if cmd := flag.Arg(0); len(cmd) > 0 {
+		command = cmd
 	}
 
 	cmds := map[string]func(*sfnt.Font) error{
@@ -33,18 +41,14 @@ func main() {
 		"metrics":  Metrics,
 		"features": Features,
 	}
-	if _, found := cmds[command]; !found {
-		usage()
-		return
+	if _, found := cmds[command]; !found || len(flag.Args()) < 2 {
+		flag.Usage()
+		os.Exit(2)
 	}
 
-	if len(os.Args) < 1 {
-		fmt.Fprintf(os.Stderr, "Usage: font %s <font file> ...\n", command)
-		os.Exit(1)
-	}
-
+	filenames := flag.Args()[1:]
 	exitCode := 0
-	for _, filename := range os.Args[1:] {
+	for _, filename := range filenames {
 		file, err := os.Open(filename)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open font: %s\n", err)
@@ -53,20 +57,62 @@ func main() {
 		}
 		defer file.Close()
 
-		font, err := sfnt.Parse(file)
+		if len(filenames) > 1 {
+			fmt.Println("==>", filename, "<==")
+		}
+
+		isCollection, err := sfnt.IsCollection(file)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse font: %s\n", err)
+			fmt.Fprintf(os.Stderr, "Failed to determine if font is collection: %s\n", err)
 			exitCode = 1
 			continue
 		}
 
-		if len(os.Args[1:]) > 1 {
-			fmt.Println("==>", filename, "<==")
-		}
-		if err := cmds[command](font); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			exitCode = 1
-			continue
+		if !isCollection {
+			font, err := sfnt.Parse(file)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to parse font: %s\n", err)
+				exitCode = 1
+				continue
+			}
+
+			if err = cmds[command](font); err != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", err)
+				exitCode = 1
+				continue
+			}
+		} else {
+			if *fontIndex >= 0 {
+				font, err := sfnt.ParseCollectionIndex(file, uint32(*fontIndex))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to parse font index %d from collection: %s\n", *fontIndex, err)
+					exitCode = 1
+					continue
+				}
+
+				if err = cmds[command](font); err != nil {
+					fmt.Fprintf(os.Stderr, "%s\n", err)
+					exitCode = 1
+					continue
+				}
+			} else {
+				fonts, err := sfnt.ParseCollection(file)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to parse fonts from collection: %s\n", err)
+					exitCode = 1
+					continue
+				}
+
+				for i, font := range fonts {
+					fmt.Printf("==>font index: %d<==\n", i)
+
+					if err = cmds[command](font); err != nil {
+						fmt.Fprintf(os.Stderr, "%s\n", err)
+						exitCode = 1
+						continue
+					}
+				}
+			}
 		}
 	}
 	os.Exit(exitCode)

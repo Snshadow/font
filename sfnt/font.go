@@ -3,6 +3,7 @@ package sfnt
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 )
@@ -205,6 +206,31 @@ type File interface {
 	Seek(int64, int) (int64, error)
 }
 
+// IsCollection returns if a file contains collection of fonts which is specifically TrueType Collection(.ttc, .otc) for now.
+// Calling this function does not increment the offset of the read [File].
+func IsCollection(file File) (bool, error) {
+	magic, err := ReadTag(file)
+	if err != nil {
+		return false, err
+	}
+
+	result := magic == TypeTrueTypeCollection
+
+	_, err = file.Seek(-4, io.SeekCurrent)
+	if err != nil {
+		curPos, err := file.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return result, err
+		}
+
+		if _, err = file.Seek(curPos-4, io.SeekStart); err != nil {
+			return result, err
+		}
+	}
+
+	return result, nil
+}
+
 // Parse parses an OpenType, TrueType, WOFF, or WOFF2 file and returns a Font.
 // If parsing fails, an error is returned and *Font will be nil.
 func Parse(file File) (*Font, error) {
@@ -217,7 +243,7 @@ func parse(file, collection File) (*Font, error) {
 		return nil, err
 	}
 
-	file.Seek(0, 0)
+	file.Seek(0, io.SeekStart)
 
 	switch magic {
 	case SignatureWOFF:
@@ -241,7 +267,7 @@ func StrictParse(file File) (*Font, error) {
 
 	for _, tag := range font.Tags() {
 		if _, err := font.Table(tag); err != nil {
-			return nil, fmt.Errorf("failed to parse %q: %s", tag, err)
+			return nil, fmt.Errorf("failed to parse %q: %w", tag, err)
 		}
 	}
 

@@ -2,6 +2,7 @@ package sfnt
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -12,18 +13,25 @@ type ttcfHeaderV1 struct {
 	NumFonts     uint32
 }
 
-// ParseTTCF reads a TrueType Collection and returns an array of fonts
-func parseTTCF(file File) ([]*Font, error) {
+// parseTTCFHeader parses ttcf header of a TrueType Collection file
+func parseTTCFHeader(file File) (ttcfHeaderV1, error) {
 	header := ttcfHeaderV1{}
 	err := binary.Read(file, binary.BigEndian, &header)
+
+	return header, err
+}
+
+// parseTTCF reads a TrueType Collection and returns an array of fonts
+func parseTTCF(file File) ([]*Font, error) {
+	header, err := parseTTCFHeader(file)
 	if err != nil {
 		return nil, err
 	}
 
-	fonts := []*Font{}
+	fonts := make([]*Font, header.NumFonts)
 
 	for i := uint32(0); i < header.NumFonts; i++ {
-		offset := uint32(0)
+		var offset uint32
 		err := binary.Read(file, binary.BigEndian, &offset)
 		if err != nil {
 			return nil, err
@@ -33,7 +41,7 @@ func parseTTCF(file File) ([]*Font, error) {
 		if err != nil {
 			return nil, err
 		}
-		fonts = append(fonts, font)
+		fonts[i] = font
 	}
 
 	return fonts, nil
@@ -42,8 +50,7 @@ func parseTTCF(file File) ([]*Font, error) {
 // ParseCollection parses a TrueType Collection (.ttc) file and returns an array of fonts.
 // It also accepts a font file that Parse accepts and returns an array of fonts with a length of 1.
 func ParseCollection(file File) ([]*Font, error) {
-	magic := Tag{}
-	err := binary.Read(file, binary.BigEndian, &magic)
+	magic, err := ReadTag(file)
 	if err != nil {
 		return nil, err
 	}
@@ -58,4 +65,38 @@ func ParseCollection(file File) ([]*Font, error) {
 	}
 
 	return parseTTCF(file)
+}
+
+// ParseCollectionIndex parses a single font from a TrueType Collection (.ttc) file with
+// font index starting from 0.
+func ParseCollectionIndex(file File, index uint32) (*Font, error) {
+	magic, err := ReadTag(file)
+	if err != nil {
+		return nil, err
+	}
+	if magic != TypeTrueTypeCollection {
+		return nil, fmt.Errorf("expected \"ttcf\" for head bytes, got \"%s\" instead", magic)
+	}
+	file.Seek(0, io.SeekStart)
+
+	header, err := parseTTCFHeader(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if index > header.NumFonts-1 {
+		return nil, fmt.Errorf("number should be smaller than %d (got %d)", header.NumFonts-1, index)
+	}
+
+	for i := uint32(0); i < index; i++ {
+		file.Seek(4, io.SeekCurrent)
+	}
+
+	var offset uint32
+	err = binary.Read(file, binary.BigEndian, &offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return parse(io.NewSectionReader(file, int64(offset), 1<<63-1), file)
 }
