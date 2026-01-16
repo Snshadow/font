@@ -48,6 +48,13 @@ func main() {
 
 	filenames := flag.Args()[1:]
 	exitCode := 0
+	runCommand := func(font *sfnt.Font) {
+		if err := cmds[command](font); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			exitCode = 1
+		}
+	}
+
 	for _, filename := range filenames {
 		file, err := os.Open(filename)
 		if err != nil {
@@ -76,11 +83,7 @@ func main() {
 				continue
 			}
 
-			if err = cmds[command](font); err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err)
-				exitCode = 1
-				continue
-			}
+			runCommand(font)
 		} else {
 			if *fontIndex >= 0 {
 				font, err := sfnt.ParseCollectionIndex(file, uint32(*fontIndex))
@@ -90,11 +93,7 @@ func main() {
 					continue
 				}
 
-				if err = cmds[command](font); err != nil {
-					fmt.Fprintf(os.Stderr, "%s\n", err)
-					exitCode = 1
-					continue
-				}
+				runCommand(font)
 			} else {
 				fonts, err := sfnt.ParseCollection(file)
 				if err != nil {
@@ -106,11 +105,7 @@ func main() {
 				for i, font := range fonts {
 					fmt.Printf("==>font index: %d<==\n", i)
 
-					if err = cmds[command](font); err != nil {
-						fmt.Fprintf(os.Stderr, "%s\n", err)
-						exitCode = 1
-						continue
-					}
+					runCommand(font)
 				}
 			}
 		}

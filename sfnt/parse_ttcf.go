@@ -85,7 +85,7 @@ func ParseCollectionIndex(file File, index uint32) (*Font, error) {
 	}
 
 	if index > header.NumFonts-1 {
-		return nil, fmt.Errorf("number should be smaller than %d (got %d)", header.NumFonts-1, index)
+		return nil, fmt.Errorf("index cannot be larger than %d (got %d)", header.NumFonts-1, index)
 	}
 
 	for i := uint32(0); i < index; i++ {
