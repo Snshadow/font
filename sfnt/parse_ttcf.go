@@ -67,8 +67,26 @@ func ParseCollection(file File) ([]*Font, error) {
 	return parseTTCF(file)
 }
 
+// StrictParseCollection parses a TrueType Collection file and returns
+// an array of fonts. Each table from each font will be fully parsed
+// and an error is returned if any fail.
+func StrictParseCollection(file File) ([]*Font, error) {
+	fonts, err := ParseCollection(file)
+	if err != nil {
+		return nil, err
+	}
+	for i, font := range fonts {
+		for _, tag := range font.Tags() {
+			if _, err := font.Table(tag); err != nil {
+				return nil, fmt.Errorf("font[%d]: failed to parse %q: %w", i, tag, err)
+			}
+		}
+	}
+	return fonts, nil
+}
+
 // ParseCollectionIndex parses a single font from a TrueType Collection (.ttc) file with
-// font index starting from 0.
+// font index starting from 0. An error is returned if a file is not a collection.
 func ParseCollectionIndex(file File, index uint32) (*Font, error) {
 	magic, err := ReadTag(file)
 	if err != nil {
@@ -85,7 +103,7 @@ func ParseCollectionIndex(file File, index uint32) (*Font, error) {
 	}
 
 	if index > header.NumFonts-1 {
-		return nil, fmt.Errorf("index cannot be larger than %d (got %d)", header.NumFonts-1, index)
+		return nil, fmt.Errorf("index can't be larger than %d (got %d)", header.NumFonts-1, index)
 	}
 
 	for i := uint32(0); i < index; i++ {
@@ -99,4 +117,22 @@ func ParseCollectionIndex(file File, index uint32) (*Font, error) {
 	}
 
 	return parse(io.NewSectionReader(file, int64(offset), 1<<63-1), file)
+}
+
+// StrictParseCollectionIndex parses a single font from a TrueType
+// Collection (.ttc) file with font index starting from 0.
+// Each table will be fully parsed and an error is returned if any fail.
+func StrictParseCollectionIndex(file File, index uint32) (*Font, error) {
+	font, err := ParseCollectionIndex(file, index)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tag := range font.Tags() {
+		if _, err := font.Table(tag); err != nil {
+			return nil, fmt.Errorf("failed to parse %q: %w", tag, err)
+		}
+	}
+
+	return font, nil
 }

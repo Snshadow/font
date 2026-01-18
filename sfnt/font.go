@@ -216,7 +216,7 @@ func IsCollection(file File) (bool, error) {
 
 	file.Seek(0, io.SeekStart)
 
-	result := magic == TypeTrueTypeCollection // || ...
+	result := magic == TypeTrueTypeCollection
 
 	return result, nil
 }
