@@ -106,9 +106,7 @@ func ParseCollectionIndex(file File, index uint32) (*Font, error) {
 		return nil, fmt.Errorf("index can't be larger than %d (got %d)", header.NumFonts-1, index)
 	}
 
-	for i := uint32(0); i < index; i++ {
-		file.Seek(4, io.SeekCurrent)
-	}
+	file.Seek(int64(index*4), io.SeekCurrent)
 
 	var offset uint32
 	err = binary.Read(file, binary.BigEndian, &offset)

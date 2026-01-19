@@ -34,6 +34,7 @@ type PlatformID uint16
 var (
 	PlatformUnicode   = PlatformID(0)
 	PlatformMac       = PlatformID(1)
+	PlatformISO       = PlatformID(2)
 	PlatformMicrosoft = PlatformID(3)
 )
 
@@ -44,6 +45,8 @@ func (p PlatformID) String() string {
 		return "Unicode"
 	case PlatformMac:
 		return "Mac"
+	case PlatformISO:
+		return "ISO"
 	case PlatformMicrosoft:
 		return "Microsoft"
 	default:
@@ -177,7 +180,7 @@ type NameEntry struct {
 }
 
 // String is a best-effort attempt to get a UTF-8 encoded version of
-// Value. Only MicrosoftUnicode (3,1 ,X), MacRomain (1,0,X) and Unicode platform
+// Value. Only MicrosoftUnicode (3,1,X), MacRoman (1,0,X) and Unicode platform
 // strings are supported.
 func (nameEntry *NameEntry) String() string {
 
