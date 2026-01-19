@@ -3,7 +3,7 @@ package sfnt
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"io"
 )
 
@@ -58,7 +58,7 @@ func NamedTag(str string) (Tag, error) {
 	bytes := []byte(str)
 
 	if len(bytes) != 4 {
-		return Tag{}, fmt.Errorf("invalid tag: must be exactly 4 bytes")
+		return Tag{}, errors.New("invalid tag: must be exactly 4 bytes")
 	}
 
 	return Tag{uint32(bytes[0])<<24 |

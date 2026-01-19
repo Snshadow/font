@@ -3,7 +3,9 @@ package sfnt
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sort"
+	"strings"
 )
 
 type fixed struct {
@@ -99,17 +101,18 @@ func (font *Font) Type() Tag {
 
 // String provides a debugging representation of a font.
 func (font *Font) String() string {
-	str := "Parsed font with scalerType=" + font.scalerType.hex()
+	var str strings.Builder
+	str.WriteString("Parsed font with scalerType=" + font.scalerType.hex())
 
 	if font.scalerType != TypeTrueType {
-		str += " (" + font.scalerType.String() + ")"
+		str.WriteString(" (" + font.scalerType.String() + ")")
 	}
 
 	for _, t := range font.Tags() {
-		str += "\n" + t.String()
+		str.WriteString("\n" + t.String())
 	}
 
-	return str
+	return str.String()
 }
 
 // HeadTable returns the table corresponding to the 'head' tag.
@@ -196,15 +199,30 @@ func New(scalerType Tag) *Font {
 
 // File is a combination of io.Reader, io.Seeker and io.ReaderAt.
 // This interface is satisfied by most things that you'd want
-// to parse, for example os.File, or io.SectionReader.
+// to parse, for example [os.File], or [io.SectionReader].
 type File interface {
 	Read([]byte) (int, error)
 	ReadAt([]byte, int64) (int, error)
 	Seek(int64, int) (int64, error)
 }
 
+// IsCollection reports whether the file is a font collection,
+// such as TrueType Collection (.ttc, .otc) files.
+func IsCollection(file File) (bool, error) {
+	magic, err := ReadTag(file)
+	if err != nil {
+		return false, err
+	}
+
+	file.Seek(0, io.SeekStart)
+
+	result := magic == TypeTrueTypeCollection
+
+	return result, nil
+}
+
 // Parse parses an OpenType, TrueType, WOFF, or WOFF2 file and returns a Font.
-// If parsing fails, an error is returned and *Font will be nil.
+// If parsing fails, an error is returned and *[Font] will be nil.
 func Parse(file File) (*Font, error) {
 	return parse(file, nil)
 }
@@ -215,7 +233,7 @@ func parse(file, collection File) (*Font, error) {
 		return nil, err
 	}
 
-	file.Seek(0, 0)
+	file.Seek(0, io.SeekStart)
 
 	switch magic {
 	case SignatureWOFF:
@@ -239,7 +257,7 @@ func StrictParse(file File) (*Font, error) {
 
 	for _, tag := range font.Tags() {
 		if _, err := font.Table(tag); err != nil {
-			return nil, fmt.Errorf("failed to parse %q: %s", tag, err)
+			return nil, fmt.Errorf("failed to parse %q: %w", tag, err)
 		}
 	}
 
