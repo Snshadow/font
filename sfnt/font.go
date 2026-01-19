@@ -199,7 +199,7 @@ func New(scalerType Tag) *Font {
 
 // File is a combination of io.Reader, io.Seeker and io.ReaderAt.
 // This interface is satisfied by most things that you'd want
-// to parse, for example os.File, or io.SectionReader.
+// to parse, for example [os.File], or [io.SectionReader].
 type File interface {
 	Read([]byte) (int, error)
 	ReadAt([]byte, int64) (int, error)
