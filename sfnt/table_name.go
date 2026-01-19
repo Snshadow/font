@@ -34,7 +34,9 @@ type PlatformID uint16
 var (
 	PlatformUnicode   = PlatformID(0)
 	PlatformMac       = PlatformID(1)
+	PlatformISO       = PlatformID(2) // Deprecated: as per TrueType specification
 	PlatformMicrosoft = PlatformID(3)
+	PlatformCustom    = PlatformID(4)
 )
 
 // String returns an idenfying string for each platform or "Platform X" for unknown values.
@@ -44,8 +46,12 @@ func (p PlatformID) String() string {
 		return "Unicode"
 	case PlatformMac:
 		return "Mac"
+	case PlatformISO:
+		return "ISO"
 	case PlatformMicrosoft:
 		return "Microsoft"
+	case PlatformCustom:
+		return "Custom"
 	default:
 		return "Platform " + strconv.Itoa(int(p))
 	}
@@ -176,36 +182,22 @@ type NameEntry struct {
 	Value      []byte
 }
 
-// String is a best-effort attempt to get a UTF-8 encoded version of
-// Value. Only MicrosoftUnicode (3,1 ,X), MacRomain (1,0,X) and Unicode platform
-// strings are supported.
+// String is a best-effort attempt to get a UTF-8 encoded version of Value.
+// Supports Unicode, Mac, ISO, and Microsoft platform encodings including
+// CJK encodings (Shift-JIS, GB2312/GBK, Big5, EUC-KR).
 func (nameEntry *NameEntry) String() string {
-
-	if nameEntry.PlatformID == PlatformUnicode || (nameEntry.PlatformID == PlatformMicrosoft &&
-		nameEntry.EncodingID == PlatformEncodingMicrosoftUnicode) {
-
-		decoder := unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM).NewDecoder()
-
-		outstr, _, err := transform.String(decoder, string(nameEntry.Value))
-
-		if err == nil {
-			return outstr
-		}
+	enc := GetEncoding(nameEntry.PlatformID, nameEntry.EncodingID, nameEntry.LanguageID)
+	if enc == nil {
+		// Unsupported encoding, return raw bytes as string
+		return string(nameEntry.Value)
 	}
 
-	if nameEntry.PlatformID == PlatformMac &&
-		nameEntry.EncodingID == PlatformEncodingMacRoman {
-
-		decoder := charmap.Macintosh.NewDecoder()
-
-		outstr, _, err := transform.String(decoder, string(nameEntry.Value))
-
-		if err == nil {
-			return outstr
-		}
+	decoder := enc.NewDecoder()
+	outstr, _, err := transform.String(decoder, string(nameEntry.Value))
+	if err != nil {
+		return string(nameEntry.Value)
 	}
-
-	return string(nameEntry.Value)
+	return outstr
 }
 
 func (nameEntry *NameEntry) Label() string {
@@ -285,7 +277,7 @@ func (table *TableName) AddMicrosoftEnglishEntry(nameId NameID, value string) er
 // with Default Encoding (Mac Roman) and the Language set to English. It returns
 // an error if the value cannot be represented in Mac Roman.
 func (table *TableName) AddMacEnglishEntry(nameId NameID, value string) error {
-	encoder := unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM).NewEncoder()
+	encoder := charmap.Macintosh.NewEncoder()
 	outstr, _, err := transform.String(encoder, value)
 	if err != nil {
 		return err
