@@ -8,11 +8,14 @@ import (
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/encoding/unicode"
+
+	"github.com/go-sw/text-codec/apple"
+	johab "github.com/go-sw/text-codec/korean"
 )
 
 // GetEncoding is a best-effort attempt to return the text encoding for a given
 // platformID/encodingID/langID, which might result in broken text.
-// Returns nil if the encoding is unknown or unsupported.
+// Returns nil if the encoding is already UTF-8 compatible (e.g. ASCII) or unsupported.
 func GetEncoding(platformID PlatformID, encodingID PlatformEncodingID, langID PlatformLanguageID) encoding.Encoding {
 	switch platformID {
 	case PlatformUnicode:
@@ -30,42 +33,41 @@ func GetEncoding(platformID PlatformID, encodingID PlatformEncodingID, langID Pl
 
 // getMacEncoding returns the encoding for Mac platform entries.
 func getMacEncoding(encodingID PlatformEncodingID, langID PlatformLanguageID) encoding.Encoding {
-	// TODO: implement custom charmap for mac encodings
 	switch encodingID {
 	case 0: // Mac Roman
 		switch langID {
-		case 15: // mac_iceland
-			return charmap.ISO8859_1
-		case 17: // mac_turkish
-			return charmap.ISO8859_9
-		case 18: // mac_croatian
-			return charmap.ISO8859_2
+		case 15:
+			return apple.Iceland
+		case 17:
+			return apple.Turkish
+		case 18:
+			return apple.Croatian
 		case 24, 25, 26, 27, 28, 36, 38, 39, 40: // mac_latin2
-			return charmap.ISO8859_2
-		case 37: // mac_romanian
-			return charmap.ISO8859_16
+			return apple.CentralEuropean
+		case 37:
+			return apple.Romanian
 		default:
 			return charmap.Macintosh
 		}
 
-	case 1: // x_mac_japanese_ttx
-		return japanese.ShiftJIS
-	case 2: // x_mac_trad_chinese_ttx
-		return traditionalchinese.Big5
-	case 3: // x_mac_korean_ttx
-		return korean.EUCKR
-	case 6: // mac_greek
-		return charmap.ISO8859_7
-	case 7: // mac_cyrillic
+	case 1:
+		return apple.Japanese
+	case 2:
+		return apple.ChineseTraditional
+	case 3:
+		return apple.Korean
+	case 6:
+		return apple.Greek
+	case 7:
 		return charmap.MacintoshCyrillic
-	case 25: // x_mac_simp_chinese_ttx
-		return simplifiedchinese.HZGB2312
+	case 25:
+		return apple.ChineseSimplified
 	case 29: // mac_latin2
-		return charmap.ISO8859_2
-	case 35: // mac_turkish
-		return charmap.ISO8859_9
-	case 37: // mac_iceland
-		return charmap.ISO8859_1
+		return apple.CentralEuropean
+	case 35:
+		return apple.Turkish
+	case 37:
+		return apple.Iceland
 	}
 
 	return nil
@@ -75,8 +77,7 @@ func getMacEncoding(encodingID PlatformEncodingID, langID PlatformLanguageID) en
 func getISOEncoding(encodingID PlatformEncodingID) encoding.Encoding {
 	switch encodingID {
 	case 0: // 7-bit ASCII
-		// ASCII is a subset of ISO-8859-1
-		return charmap.ISO8859_1
+		return nil // ASCII is valid UTF-8
 	case 1: // ISO 10646 (Unicode)
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
 	case 2: // ISO 8859-1 (Latin 1)
@@ -101,9 +102,8 @@ func getMicrosoftEncoding(encodingID PlatformEncodingID) encoding.Encoding {
 		return traditionalchinese.Big5
 	case 5:
 		return korean.EUCKR
-	case 6: // Johab
-		// TODO: implement custom Johab charmap
-		return nil
+	case 6:
+		return johab.Johab
 	case 10: // Unicode full repertoire (UCS-4)
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
 	}

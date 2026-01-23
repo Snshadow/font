@@ -81,31 +81,32 @@ var (
 type NameID uint16
 
 var (
-	NameCopyrightNotice        = NameID(0)
-	NameFontFamily             = NameID(1)
-	NameFontSubfamily          = NameID(2)
-	NameUniqueIdentifier       = NameID(3)
-	NameFull                   = NameID(4)
-	NameVersion                = NameID(5)
-	NamePostscript             = NameID(6)
-	NameTrademark              = NameID(7)
-	NameManufacturer           = NameID(8)
-	NameDesigner               = NameID(9)
-	NameDescription            = NameID(10)
-	NameVendorURL              = NameID(11)
-	NameDesignerURL            = NameID(12)
-	NameLicenseDescription     = NameID(13)
-	_NameReserved              = NameID(15)
-	NameLicenseURL             = NameID(14)
-	NamePreferredFamily        = NameID(16)
-	NamePreferredSubfamily     = NameID(17)
-	NameCompatibleFull         = NameID(18)
-	NameSampleText             = NameID(19)
-	NamePostscriptCID          = NameID(20)
-	NameWWSFamily              = NameID(21)
-	NameWWSSubfamily           = NameID(22)
-	NameLightBackgroundPalette = NameID(23)
-	NameDarkBackgroundPalette  = NameID(24)
+	NameCopyrightNotice                = NameID(0)
+	NameFontFamily                     = NameID(1)
+	NameFontSubfamily                  = NameID(2)
+	NameUniqueIdentifier               = NameID(3)
+	NameFull                           = NameID(4)
+	NameVersion                        = NameID(5)
+	NamePostscript                     = NameID(6)
+	NameTrademark                      = NameID(7)
+	NameManufacturer                   = NameID(8)
+	NameDesigner                       = NameID(9)
+	NameDescription                    = NameID(10)
+	NameVendorURL                      = NameID(11)
+	NameDesignerURL                    = NameID(12)
+	NameLicenseDescription             = NameID(13)
+	_NameReserved                      = NameID(15)
+	NameLicenseURL                     = NameID(14)
+	NamePreferredFamily                = NameID(16)
+	NamePreferredSubfamily             = NameID(17)
+	NameCompatibleFull                 = NameID(18)
+	NameSampleText                     = NameID(19)
+	NamePostscriptCID                  = NameID(20)
+	NameWWSFamily                      = NameID(21)
+	NameWWSSubfamily                   = NameID(22)
+	NameLightBackgroundPalette         = NameID(23)
+	NameDarkBackgroundPalette          = NameID(24)
+	NameVariationsPostScriptNamePrefix = NameID(25)
 )
 
 // String returns an identifying
@@ -159,6 +160,8 @@ func (nameId NameID) String() string {
 		return "Light Background Palette"
 	case NameDarkBackgroundPalette:
 		return "Dark Background Palette"
+	case NameVariationsPostScriptNamePrefix:
+		return "Variations PostScript Name Prefix"
 	default:
 		return "Name " + strconv.Itoa(int(nameId))
 	}
@@ -188,7 +191,7 @@ type NameEntry struct {
 func (nameEntry *NameEntry) String() string {
 	enc := GetEncoding(nameEntry.PlatformID, nameEntry.EncodingID, nameEntry.LanguageID)
 	if enc == nil {
-		// Unsupported encoding, return raw bytes as string
+		// Already UTF-8 compatible (e.g. ASCII) or unsupported encoding
 		return string(nameEntry.Value)
 	}
 
