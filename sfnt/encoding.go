@@ -1,6 +1,8 @@
 package sfnt
 
 import (
+	"strconv"
+
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/encoding/japanese"
@@ -11,6 +13,110 @@ import (
 
 	"github.com/go-sw/text-codec/apple"
 	johab "github.com/go-sw/text-codec/korean"
+)
+
+// PlatformID represents the platform id used to specify a particular character encoding.
+type PlatformID uint16
+
+const (
+	PlatformUnicode   = PlatformID(0)
+	PlatformMac       = PlatformID(1)
+	PlatformISO       = PlatformID(2) // Deprecated: as per TrueType specification
+	PlatformMicrosoft = PlatformID(3)
+	PlatformCustom    = PlatformID(4)
+)
+
+// String returns an idenfying string for each platform or "Platform X" for unknown values.
+func (p PlatformID) String() string {
+	switch p {
+	case PlatformUnicode:
+		return "Unicode"
+	case PlatformMac:
+		return "Mac"
+	case PlatformISO:
+		return "ISO"
+	case PlatformMicrosoft:
+		return "Microsoft"
+	case PlatformCustom:
+		return "Custom"
+	default:
+		return "Platform " + strconv.Itoa(int(p))
+	}
+}
+
+// PlatformEncodingID represents the platform specific id used to
+// specify a particular character encoding.
+type PlatformEncodingID uint16
+
+const (
+	// Unicode platform
+
+	PlatformEncodingUnicode1_0            = PlatformEncodingID(0) // Deprecated: Unicode 1.0 semantics
+	PlatformEncodingUnicode1_1            = PlatformEncodingID(1) // Deprecated: Unicode 1.1 semantics
+	PlatformEncodingUnicodeISO10646       = PlatformEncodingID(2) // Deprecated: ISO/IEC 10646 semantics
+	PlatformEncodingUnicodeBMP            = PlatformEncodingID(3)
+	PlatformEncodingUnicodeFullRepertoire = PlatformEncodingID(4)
+
+	// Macintosh platform (only those actually used)
+	// See https://github.com/fonttools/fonttools/issues/236
+
+	PlatformEncodingMacRoman              = PlatformEncodingID(0)
+	PlatformEncodingMacJapanese           = PlatformEncodingID(1)
+	PlatformEncodingMacChineseTraditional = PlatformEncodingID(2)
+	PlatformEncodingMacKorean             = PlatformEncodingID(3)
+	PlatformEncodingMacGreek              = PlatformEncodingID(6)
+	PlatformEncodingMacRussian            = PlatformEncodingID(7)
+	PlatformEncodingMacChineseSimplified  = PlatformEncodingID(25)
+	PlatformEncodingMacSlavic             = PlatformEncodingID(29)
+	PlatformEncodingMacTurkish            = PlatformEncodingID(35)
+	PlatformEncodingMacIceland            = PlatformEncodingID(37)
+
+	// Deprecated: ISO platform
+	PlatformEncodingISOASCII  = PlatformEncodingID(0)
+	PlatformEncodingISO10646  = PlatformEncodingID(1) // Deprecated: Unicode
+	PlatformEncodingISO8859_1 = PlatformEncodingID(2) // Deprecated: ISO 8859-1
+
+	// Microsoft platform
+
+	PlatformEncodingMicrosoftSymbol                = PlatformEncodingID(0)
+	PlatformEncodingMicrosoftUnicode               = PlatformEncodingID(1) // Unicode BMP
+	PlatformEncodingMicrosoftShiftJIS              = PlatformEncodingID(2)
+	PlatformEncodingMicrosoftPRC                   = PlatformEncodingID(3)
+	PlatformEncodingMicrosoftBig5                  = PlatformEncodingID(4)
+	PlatformEncodingMicrosoftWansung               = PlatformEncodingID(5)
+	PlatformEncodingMicrosoftJohab                 = PlatformEncodingID(6)
+	PlatformEncodingMicrosoftUnicodeFullRepertoire = PlatformEncodingID(10)
+)
+
+// PlatformLanguageID represents the platform specific language id used to
+// specify a particular character encoding.
+type PlatformLanguageID uint16
+
+const (
+	// Unicode platform language ID
+
+	PlatformLanguageUnicodeDefault = PlatformLanguageID(0)
+
+	// Macintosh platform language IDs (only those actually used)
+
+	PlatformLanguageMacEnglish    = PlatformLanguageID(0)
+	PlatformLanguageMacIcelandic  = PlatformLanguageID(15)
+	PlatformLanguageMacTurkish    = PlatformLanguageID(17)
+	PlatformLanguageMacCroatian   = PlatformLanguageID(18)
+	PlatformLanguageMacLithuanian = PlatformLanguageID(24)
+	PlatformLanguageMacPolish     = PlatformLanguageID(25)
+	PlatformLanguageMacHungarian  = PlatformLanguageID(26)
+	PlatformLanguageMacEstonian   = PlatformLanguageID(27)
+	PlatformLanguageMacLatvian    = PlatformLanguageID(28)
+	PlatformLanguageMacAlbanian   = PlatformLanguageID(36)
+	PlatformLanguageMacRomanian   = PlatformLanguageID(37)
+	PlatformLanguageMacCzech      = PlatformLanguageID(38)
+	PlatformLanguageMacSlovak     = PlatformLanguageID(39)
+	PlatformLanguageMacSlovenian  = PlatformLanguageID(40)
+
+	// Microsoft platform language ID
+
+	PlatformLanguageMicrosoftEnglish = PlatformLanguageID(0x0409)
 )
 
 // GetEncoding is a best-effort attempt to return the text encoding for a given
@@ -34,39 +140,41 @@ func GetEncoding(platformID PlatformID, encodingID PlatformEncodingID, langID Pl
 // getMacEncoding returns the encoding for Mac platform entries.
 func getMacEncoding(encodingID PlatformEncodingID, langID PlatformLanguageID) encoding.Encoding {
 	switch encodingID {
-	case 0: // Mac Roman
+	case PlatformEncodingMacRoman: // Mac Roman
 		switch langID {
-		case 15:
+		case PlatformLanguageMacIcelandic:
 			return apple.Iceland
-		case 17:
+		case PlatformLanguageMacTurkish:
 			return apple.Turkish
-		case 18:
+		case PlatformLanguageMacCroatian:
 			return apple.Croatian
-		case 24, 25, 26, 27, 28, 36, 38, 39, 40: // mac_latin2
+		case PlatformLanguageMacLithuanian, PlatformLanguageMacPolish, PlatformLanguageMacHungarian,
+			PlatformLanguageMacEstonian, PlatformLanguageMacLatvian, PlatformLanguageMacAlbanian,
+			PlatformLanguageMacCzech, PlatformLanguageMacSlovak, PlatformLanguageMacSlovenian: // mac_latin2
 			return apple.CentralEuropean
-		case 37:
+		case PlatformLanguageMacRomanian:
 			return apple.Romanian
 		default:
 			return charmap.Macintosh
 		}
 
-	case 1:
+	case PlatformEncodingMacJapanese:
 		return apple.Japanese
-	case 2:
+	case PlatformEncodingMacChineseTraditional:
 		return apple.ChineseTraditional
-	case 3:
+	case PlatformEncodingMacKorean:
 		return apple.Korean
-	case 6:
+	case PlatformEncodingMacGreek:
 		return apple.Greek
-	case 7:
+	case PlatformEncodingMacRussian:
 		return charmap.MacintoshCyrillic
-	case 25:
+	case PlatformEncodingMacChineseSimplified:
 		return apple.ChineseSimplified
-	case 29: // mac_latin2
+	case PlatformEncodingMacSlavic: // mac_latin2
 		return apple.CentralEuropean
-	case 35:
+	case PlatformEncodingMacTurkish:
 		return apple.Turkish
-	case 37:
+	case PlatformEncodingMacIceland:
 		return apple.Iceland
 	}
 
@@ -76,11 +184,11 @@ func getMacEncoding(encodingID PlatformEncodingID, langID PlatformLanguageID) en
 // getISOEncoding returns the encoding for ISO platform entries.
 func getISOEncoding(encodingID PlatformEncodingID) encoding.Encoding {
 	switch encodingID {
-	case 0: // 7-bit ASCII
+	case PlatformEncodingISOASCII:
 		return nil // ASCII is valid UTF-8
-	case 1: // ISO 10646 (Unicode)
+	case PlatformEncodingISO10646:
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
-	case 2: // ISO 8859-1 (Latin 1)
+	case PlatformEncodingISO8859_1:
 		return charmap.ISO8859_1
 	}
 
@@ -90,21 +198,21 @@ func getISOEncoding(encodingID PlatformEncodingID) encoding.Encoding {
 // getMicrosoftEncoding returns the encoding for Microsoft platform entries.
 func getMicrosoftEncoding(encodingID PlatformEncodingID) encoding.Encoding {
 	switch encodingID {
-	case 0: // Symbol
+	case PlatformEncodingMicrosoftSymbol:
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
-	case 1: // Unicode BMP (UCS-2)
+	case PlatformEncodingMicrosoftUnicode:
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
-	case 2:
+	case PlatformEncodingMicrosoftShiftJIS:
 		return japanese.ShiftJIS
-	case 3:
+	case PlatformEncodingMicrosoftPRC:
 		return simplifiedchinese.GBK
-	case 4:
+	case PlatformEncodingMicrosoftBig5:
 		return traditionalchinese.Big5
-	case 5:
+	case PlatformEncodingMicrosoftWansung:
 		return korean.EUCKR
-	case 6:
+	case PlatformEncodingMicrosoftJohab:
 		return johab.Johab
-	case 10: // Unicode full repertoire (UCS-4)
+	case PlatformEncodingMicrosoftUnicodeFullRepertoire:
 		return unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM)
 	}
 

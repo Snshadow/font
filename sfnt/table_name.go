@@ -28,55 +28,6 @@ type nameHeader struct {
 	StringOffset uint16
 }
 
-// PlatformID represents the platform id for entries in the name table.
-type PlatformID uint16
-
-var (
-	PlatformUnicode   = PlatformID(0)
-	PlatformMac       = PlatformID(1)
-	PlatformISO       = PlatformID(2) // Deprecated: as per TrueType specification
-	PlatformMicrosoft = PlatformID(3)
-	PlatformCustom    = PlatformID(4)
-)
-
-// String returns an idenfying string for each platform or "Platform X" for unknown values.
-func (p PlatformID) String() string {
-	switch p {
-	case PlatformUnicode:
-		return "Unicode"
-	case PlatformMac:
-		return "Mac"
-	case PlatformISO:
-		return "ISO"
-	case PlatformMicrosoft:
-		return "Microsoft"
-	case PlatformCustom:
-		return "Custom"
-	default:
-		return "Platform " + strconv.Itoa(int(p))
-	}
-}
-
-// PlatformEncodingID represents the platform specific id for entries in the name table.
-// the three most common values are provided as constants.
-type PlatformEncodingID uint16
-
-var (
-	PlatformEncodingMacRoman         = PlatformEncodingID(0)
-	PlatformEncodingUnicodeDefault   = PlatformEncodingID(0)
-	PlatformEncodingMicrosoftUnicode = PlatformEncodingID(1)
-)
-
-// PlatformLanguageID represents the language used by an entry in the name table,
-// the three most common values are provided as constants.
-type PlatformLanguageID uint16
-
-var (
-	PlatformLanguageMacEnglish       = PlatformLanguageID(0)
-	PlatformLanguageUnicodeDefault   = PlatformLanguageID(0)
-	PlatformLanguageMicrosoftEnglish = PlatformLanguageID(0x0409)
-)
-
 // NameID is the ID for entries in the font table.
 type NameID uint16
 
@@ -309,7 +260,7 @@ func (table *TableName) AddUnicodeEntry(nameId NameID, value string) error {
 
 	table.Add(&NameEntry{
 		PlatformID: PlatformUnicode,
-		EncodingID: PlatformEncodingUnicodeDefault,
+		EncodingID: PlatformEncodingUnicodeFullRepertoire,
 		LanguageID: PlatformLanguageUnicodeDefault,
 		NameID:     nameId,
 		Value:      []byte(outstr),
