@@ -28,81 +28,36 @@ type nameHeader struct {
 	StringOffset uint16
 }
 
-// PlatformID represents the platform id for entries in the name table.
-type PlatformID uint16
-
-var (
-	PlatformUnicode   = PlatformID(0)
-	PlatformMac       = PlatformID(1)
-	PlatformISO       = PlatformID(2)
-	PlatformMicrosoft = PlatformID(3)
-)
-
-// String returns an idenfying string for each platform or "Platform X" for unknown values.
-func (p PlatformID) String() string {
-	switch p {
-	case PlatformUnicode:
-		return "Unicode"
-	case PlatformMac:
-		return "Mac"
-	case PlatformISO:
-		return "ISO"
-	case PlatformMicrosoft:
-		return "Microsoft"
-	default:
-		return "Platform " + strconv.Itoa(int(p))
-	}
-}
-
-// PlatformEncodingID represents the platform specific id for entries in the name table.
-// the three most common values are provided as constants.
-type PlatformEncodingID uint16
-
-var (
-	PlatformEncodingMacRoman         = PlatformEncodingID(0)
-	PlatformEncodingUnicodeDefault   = PlatformEncodingID(0)
-	PlatformEncodingMicrosoftUnicode = PlatformEncodingID(1)
-)
-
-// PlatformLanguageID represents the language used by an entry in the name table,
-// the three most common values are provided as constants.
-type PlatformLanguageID uint16
-
-var (
-	PlatformLanguageMacEnglish       = PlatformLanguageID(0)
-	PlatformLanguageUnicodeDefault   = PlatformLanguageID(0)
-	PlatformLanguageMicrosoftEnglish = PlatformLanguageID(0x0409)
-)
-
 // NameID is the ID for entries in the font table.
 type NameID uint16
 
 var (
-	NameCopyrightNotice        = NameID(0)
-	NameFontFamily             = NameID(1)
-	NameFontSubfamily          = NameID(2)
-	NameUniqueIdentifier       = NameID(3)
-	NameFull                   = NameID(4)
-	NameVersion                = NameID(5)
-	NamePostscript             = NameID(6)
-	NameTrademark              = NameID(7)
-	NameManufacturer           = NameID(8)
-	NameDesigner               = NameID(9)
-	NameDescription            = NameID(10)
-	NameVendorURL              = NameID(11)
-	NameDesignerURL            = NameID(12)
-	NameLicenseDescription     = NameID(13)
-	_NameReserved              = NameID(15)
-	NameLicenseURL             = NameID(14)
-	NamePreferredFamily        = NameID(16)
-	NamePreferredSubfamily     = NameID(17)
-	NameCompatibleFull         = NameID(18)
-	NameSampleText             = NameID(19)
-	NamePostscriptCID          = NameID(20)
-	NameWWSFamily              = NameID(21)
-	NameWWSSubfamily           = NameID(22)
-	NameLightBackgroundPalette = NameID(23)
-	NameDarkBackgroundPalette  = NameID(24)
+	NameCopyrightNotice                = NameID(0)
+	NameFontFamily                     = NameID(1)
+	NameFontSubfamily                  = NameID(2)
+	NameUniqueIdentifier               = NameID(3)
+	NameFull                           = NameID(4)
+	NameVersion                        = NameID(5)
+	NamePostscript                     = NameID(6)
+	NameTrademark                      = NameID(7)
+	NameManufacturer                   = NameID(8)
+	NameDesigner                       = NameID(9)
+	NameDescription                    = NameID(10)
+	NameVendorURL                      = NameID(11)
+	NameDesignerURL                    = NameID(12)
+	NameLicenseDescription             = NameID(13)
+	_NameReserved                      = NameID(15)
+	NameLicenseURL                     = NameID(14)
+	NamePreferredFamily                = NameID(16)
+	NamePreferredSubfamily             = NameID(17)
+	NameCompatibleFull                 = NameID(18)
+	NameSampleText                     = NameID(19)
+	NamePostscriptCID                  = NameID(20)
+	NameWWSFamily                      = NameID(21)
+	NameWWSSubfamily                   = NameID(22)
+	NameLightBackgroundPalette         = NameID(23)
+	NameDarkBackgroundPalette          = NameID(24)
+	NameVariationsPostScriptNamePrefix = NameID(25)
 )
 
 // String returns an identifying
@@ -156,6 +111,8 @@ func (nameId NameID) String() string {
 		return "Light Background Palette"
 	case NameDarkBackgroundPalette:
 		return "Dark Background Palette"
+	case NameVariationsPostScriptNamePrefix:
+		return "Variations PostScript Name Prefix"
 	default:
 		return "Name " + strconv.Itoa(int(nameId))
 	}
@@ -179,36 +136,22 @@ type NameEntry struct {
 	Value      []byte
 }
 
-// String is a best-effort attempt to get a UTF-8 encoded version of
-// Value. Only MicrosoftUnicode (3,1,X), MacRoman (1,0,X) and Unicode platform
-// strings are supported.
+// String is a best-effort attempt to get a UTF-8 encoded version of Value.
+// Supports Unicode, Mac, ISO, and Microsoft platform encodings including
+// CJK encodings (Shift-JIS, GB2312/GBK, Big5, EUC-KR).
 func (nameEntry *NameEntry) String() string {
-
-	if nameEntry.PlatformID == PlatformUnicode || (nameEntry.PlatformID == PlatformMicrosoft &&
-		nameEntry.EncodingID == PlatformEncodingMicrosoftUnicode) {
-
-		decoder := unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM).NewDecoder()
-
-		outstr, _, err := transform.String(decoder, string(nameEntry.Value))
-
-		if err == nil {
-			return outstr
-		}
+	enc := GetEncoding(nameEntry.PlatformID, nameEntry.EncodingID, nameEntry.LanguageID)
+	if enc == nil {
+		// Already UTF-8 compatible (e.g. ASCII) or unsupported encoding
+		return string(nameEntry.Value)
 	}
 
-	if nameEntry.PlatformID == PlatformMac &&
-		nameEntry.EncodingID == PlatformEncodingMacRoman {
-
-		decoder := charmap.Macintosh.NewDecoder()
-
-		outstr, _, err := transform.String(decoder, string(nameEntry.Value))
-
-		if err == nil {
-			return outstr
-		}
+	decoder := enc.NewDecoder()
+	outstr, _, err := transform.String(decoder, string(nameEntry.Value))
+	if err != nil {
+		return string(nameEntry.Value)
 	}
-
-	return string(nameEntry.Value)
+	return outstr
 }
 
 func (nameEntry *NameEntry) Label() string {
@@ -288,7 +231,7 @@ func (table *TableName) AddMicrosoftEnglishEntry(nameId NameID, value string) er
 // with Default Encoding (Mac Roman) and the Language set to English. It returns
 // an error if the value cannot be represented in Mac Roman.
 func (table *TableName) AddMacEnglishEntry(nameId NameID, value string) error {
-	encoder := unicode.UTF16(unicode.BigEndian, unicode.IgnoreBOM).NewEncoder()
+	encoder := charmap.Macintosh.NewEncoder()
 	outstr, _, err := transform.String(encoder, value)
 	if err != nil {
 		return err
@@ -317,7 +260,7 @@ func (table *TableName) AddUnicodeEntry(nameId NameID, value string) error {
 
 	table.Add(&NameEntry{
 		PlatformID: PlatformUnicode,
-		EncodingID: PlatformEncodingUnicodeDefault,
+		EncodingID: PlatformEncodingUnicodeFullRepertoire,
 		LanguageID: PlatformLanguageUnicodeDefault,
 		NameID:     nameId,
 		Value:      []byte(outstr),

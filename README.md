@@ -10,7 +10,7 @@ The main contribution of this repository is the [SFNT](https://godoc.org/github.
 To use this library in your project:
 
 ```
-go get -u github.com/ConradIrwin/font/sfnt
+go get github.com/ConradIrwin/font/sfnt
 ```
 
 Also included is a utility called `font` that can do various useful things with fonts:
